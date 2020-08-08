@@ -20,6 +20,9 @@
 #include <utility>
 
 #include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/prettywriter.h>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 
@@ -358,6 +361,10 @@ void OpflexPEHandler::handlePolicyResolveRes(uint64_t reqId,
     StoreClient* client = getProcessor()->getSystemClient();
     MOSerializer& serializer = getProcessor()->getSerializer();
     StoreClient::notif_t notifs;
+
+    LOG(DEBUG) << "Resolution response for requestId "
+               << reqId;
+
     if (payload.HasMember("policy")) {
         const Value& policy = payload["policy"];
         if (!policy.IsArray()) {
@@ -369,6 +376,11 @@ void OpflexPEHandler::handlePolicyResolveRes(uint64_t reqId,
         Value::ConstValueIterator it;
         for (it = policy.Begin(); it != policy.End(); ++it) {
             const Value& mo = *it;
+            rapidjson::StringBuffer buffer;
+            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+            buffer.Clear();
+            mo.Accept(writer);
+            LOG(DEBUG) << buffer.GetString();
             serializer.deserialize(mo, *client, true, &notifs);
         }
     }

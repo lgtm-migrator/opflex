@@ -9,13 +9,16 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#include <algorithm>
 
 #include <modelgbp/gbp/UnknownFloodModeEnumT.hpp>
 #include <modelgbp/gbp/RoutingModeEnumT.hpp>
 #include <modelgbp/gbp/DirectionEnumT.hpp>
 #include <modelgbp/gbp/HashingAlgorithmEnumT.hpp>
 #include <opflex/modb/URIBuilder.h>
+#include <modelgbp/gbp/ConnTrackEnumT.hpp>
+#include <modelgbp/l2/EtherTypeEnumT.hpp>
+#include <modelgbp/l4/TcpFlagsEnumT.hpp>
+#include <algorithm>
 
 #include <opflexagent/logging.h>
 #include <opflexagent/PolicyManager.h>
@@ -1012,6 +1015,7 @@ void PolicyManager::resolveSubnets(OFFramework& framework,
     }
 }
 
+
 template <typename Parent, typename Child>
 void resolveChildren(shared_ptr<Parent>& parent,
                      /* out */ vector<shared_ptr<Child> > &children) { }
@@ -1054,6 +1058,99 @@ void resolveRemoteSubnets(OFFramework& framework,
     }
 }
 
+
+void addClsrToMap(const shared_ptr<modelgbp::gbpe::L24Classifier>& currClsr, std::multimap<uint32_t,shared_ptr<modelgbp::gbpe::L24Classifier>>& storeClsr){    
+  using modelgbp::gbpe::L24Classifier;
+  const shared_ptr<L24Classifier>& nextClsr = *(&currClsr+1);
+  if (currClsr->getOrder(0) == nextClsr->getOrder(0)) {
+     if(storeClsr.empty()){
+         storeClsr.insert({currClsr->getOrder(0),currClsr});
+     }
+     auto retClsr = storeClsr.equal_range(currClsr->getOrder(0));
+     bool foundClsr = 0;
+     for (auto it = retClsr.first; it != retClsr.second ; ++it){
+         if (it->second == currClsr)
+           foundClsr = 1;
+     }
+
+     if (foundClsr) {
+        storeClsr.insert({nextClsr->getOrder(0),nextClsr});
+     }
+     else {
+        storeClsr.insert({currClsr->getOrder(0),currClsr});
+        storeClsr.insert({nextClsr->getOrder(0),nextClsr});
+     }
+  }
+
+}
+
+int findPrio(const shared_ptr<modelgbp::gbpe::L24Classifier>& clsr){
+   using modelgbp::gbpe::L24Classifier;
+   using modelgbp::gbp::ConnTrackEnumT;
+   using modelgbp::l2::EtherTypeEnumT;
+   using modelgbp::l4::TcpFlagsEnumT;
+
+   if ((clsr->getConnectionTracking(ConnTrackEnumT::CONST_NORMAL) == ConnTrackEnumT::CONST_REFLEXIVE) &&
+       ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) == EtherTypeEnumT::CONST_IPV4) ||
+       (clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) == EtherTypeEnumT::CONST_IPV6)) &&
+       (clsr->getProt(0) == 6) &&
+       ((clsr->getDToPort(0) == 80) ||
+       (clsr->getDToPort(0) == 22)) &&
+       ((clsr->getSToPort(0) == 80) ||
+       (clsr->getSToPort(0) == 22)) &&
+       (clsr->getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED)!= TcpFlagsEnumT::CONST_UNSPECIFIED)) 
+       return 1;
+
+   if ((clsr->getConnectionTracking(ConnTrackEnumT::CONST_NORMAL) == ConnTrackEnumT::CONST_REFLEXIVE) &&
+       ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) == EtherTypeEnumT::CONST_IPV4) ||
+       (clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) == EtherTypeEnumT::CONST_IPV6)) &&
+       (clsr->getProt(0) == 6) &&
+       ((clsr->getDToPort(0) == 22) ||  
+       (clsr->getSToPort(0) == 22)) &&
+       (clsr->getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED)!= TcpFlagsEnumT::CONST_UNSPECIFIED))
+       return 2;
+
+   if ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) != EtherTypeEnumT::CONST_UNSPECIFIED) &&
+       (clsr->getProt(0) == 0) &&
+       (clsr->getSToPort(0) == 22) &&
+       (clsr->getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED)))
+       return 3;
+
+   if ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) != EtherTypeEnumT::CONST_UNSPECIFIED) &&
+       (clsr->getProt(0) == 0) &&
+       (clsr->getDToPort(0) == 22) &&
+       (clsr->getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED)))
+       return 4;
+ 
+   if ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) != EtherTypeEnumT::CONST_UNSPECIFIED) &&
+       (clsr->getProt(0) != 0) &&
+       (clsr->getDToPort(0) == 80))
+       return 5;
+
+  
+   if ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) != EtherTypeEnumT::CONST_UNSPECIFIED) &&
+       (clsr->getProt(0) != 0) &&
+       (clsr->getSToPort(0) != 0))
+       return 6;
+  
+   if ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) != EtherTypeEnumT::CONST_UNSPECIFIED) &&
+       (clsr->getDToPort(0) != 0)) 
+       return 7; 
+    
+   if ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) != EtherTypeEnumT::CONST_UNSPECIFIED) &&
+       (clsr->getProt(0) != 0))
+       return 8;
+ 
+   if ((clsr->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED) != EtherTypeEnumT::CONST_UNSPECIFIED))
+       return 9;
+
+  return INT_MAX;
+
+}
+
+  
+
+
 template <typename Parent, typename Subject, typename Rule>
 static bool updatePolicyRules(OFFramework& framework,
                               const URI& parentURI, bool& notFound,
@@ -1068,6 +1165,8 @@ static bool updatePolicyRules(OFFramework& framework,
     using modelgbp::gbp::RedirectAction;
     using modelgbp::gbp::RedirectDestGroup;
     using modelgbp::gbp::LogAction;
+    using modelgbp::gbp::ConnTrackEnumT;
+    using modelgbp::l2::EtherTypeEnumT;
 
     optional<shared_ptr<Parent> > parent =
         Parent::resolve(framework, parentURI);
@@ -1094,13 +1193,15 @@ static bool updatePolicyRules(OFFramework& framework,
             if (!rule->isDirectionSet()) {
                 continue;       // ignore rules with no direction
             }
+     
             uint8_t dir = rule->getDirection().get();
             network::subnets_t remoteSubnets;
             resolveRemoteSubnets(framework, rule, remoteSubnets);
             vector<shared_ptr<L24Classifier> > classifiers;
             vector<shared_ptr<RuleToClassifierRSrc> > clsRel;
             rule->resolveGbpRuleToClassifierRSrc(clsRel);
-
+            
+             
             for (shared_ptr<RuleToClassifierRSrc>& r : clsRel) {
                 if (!r->isTargetSet() ||
                     r->getTargetClass().get() != L24Classifier::CLASS_ID) {
@@ -1110,6 +1211,7 @@ static bool updatePolicyRules(OFFramework& framework,
                     L24Classifier::resolve(framework, r->getTargetURI().get());
                 if (cls) {
                     classifiers.push_back(cls.get());
+  
                 }
             }
             stable_sort(classifiers.begin(), classifiers.end(), classifierComp);
@@ -1167,17 +1269,61 @@ static bool updatePolicyRules(OFFramework& framework,
                 }
             }
 
+            std::multimap<uint32_t,shared_ptr<L24Classifier>> storeClsr;
+            auto &lastClsr = *(--classifiers.end());
+            for(const shared_ptr<L24Classifier>& currClsr : classifiers){
+                if (&currClsr != &lastClsr) {
+                    addClsrToMap(currClsr, storeClsr);
+                }
+            }
+           
+
             uint16_t clsPrio = 0;
-            for (const shared_ptr<L24Classifier>& c : classifiers) {
-                newRules.push_back(std::
-                                   make_shared<PolicyRule>(dir,
-                                                           rulePrio - clsPrio,
-                                                           c, ruleAllow,
-                                                           remoteSubnets,
-                                                           ruleRedirect, ruleLog,
-                                                           destGrpUri));
-                if (clsPrio < 127)
-                    clsPrio += 1;
+            auto &last_Clsr = *(classifiers.end());
+            std::vector<shared_ptr<L24Classifier>> set_cls(10);
+            //std::vector<shared_ptr<L24Classifier>> set_cls;
+            int j =0;
+            for (unsigned i = 0; i < classifiers.size(); ++i) {
+               j++;
+               if (&classifiers[i] != &last_Clsr) {
+                  if (storeClsr.find(classifiers[i]->getOrder(0)) != storeClsr.end()) {   
+                     auto ret = storeClsr.equal_range(classifiers[i]->getOrder(0));
+                     int val_range = std::distance(ret.first, ret.second);
+                     if (val_range>=1) {
+                        for (auto it=ret.first; it!=ret.second; ++it) {
+                            int curr = findPrio(it->second);
+                            auto itPos = set_cls.begin() + curr;
+                            set_cls.insert(itPos, it->second);
+                            if (it != ret.second)
+                               i++; 
+                        }  
+                    
+                        for (auto c : set_cls) {
+
+                            newRules.push_back(std::
+                                make_shared<PolicyRule>(dir,
+                                                        rulePrio - clsPrio,
+                                                        c, ruleAllow,
+                                                        remoteSubnets,
+                                                        ruleRedirect, ruleLog,
+                                                        destGrpUri));
+                            if (clsPrio < 127)
+                               clsPrio += 1; 
+                        } 
+                     }
+                  } else {
+
+                      newRules.push_back(std::
+                            make_shared<PolicyRule>(dir,
+                                                    rulePrio - clsPrio,
+                                                    classifiers[i], ruleAllow,
+                                                    remoteSubnets,  
+                                                    ruleRedirect, ruleLog,
+                                                    destGrpUri));
+                      if (clsPrio < 127)
+                         clsPrio += 1;
+                    }
+               } 
             }
             if (rulePrio > 128)
                 rulePrio -= 128;

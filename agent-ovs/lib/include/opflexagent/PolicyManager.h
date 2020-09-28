@@ -35,6 +35,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <mutex>
+#include <map>
 
 namespace opflexagent {
 
@@ -773,6 +774,9 @@ public:
      * Handle Subnets deletion
      */
     void deleteSubnets(const opflex::modb::URI& subnets);
+  
+    void addClsrToMap(const std::shared_ptr<modelgbp::gbpe::L24Classifier>& currCls, std::multimap<uint32_t,std::shared_ptr<modelgbp::gbpe::L24Classifier>>& storeClsr);
+
 private:
     opflex::ofcore::OFFramework& framework;
     std::string opflexDomain;

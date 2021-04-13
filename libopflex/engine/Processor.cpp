@@ -353,9 +353,13 @@ bool Processor::declareObj(ClassInfo::class_type_t type, const item& i,
 // syncing the managed object over opflex
 void Processor::processItem(obj_state_by_exp::iterator& it) {
     StoreClient::notif_t notifs;
-
+ 
     std::unique_lock<std::mutex> guard(item_mutex);
     ItemState curState = it->details->state;
+   
+    LOG(DEBUG) << "ref count of the object "<< it->details->refcount;
+    LOG(DEBUG) << "item state of the object "<< it->details->state;
+
     size_t curRefCount = it->details->refcount;
     bool local = it->details->local;
 
@@ -369,6 +373,8 @@ void Processor::processItem(obj_state_by_exp::iterator& it) {
     }
 
     const ClassInfo& ci = store->getClassInfo(it->details->class_id);
+    LOG(DEBUG) << "Class ID of the object ---"<< it->details->class_id;
+
     if (ci.getType() != ClassInfo::OBSERVABLE) {
         LOG(DEBUG) << "Processing " << (local ? "local" : "nonlocal")
                    << " item " << it->uri.toString()
@@ -471,6 +477,7 @@ void Processor::processItem(obj_state_by_exp::iterator& it) {
         }
     }
 
+    LOG(DEBUG) << "CUR REF COUNT-- "<< curRefCount;
     if (curRefCount > 0) {
         resolveObj(ci.getType(), *it, newexp);
         newState = RESOLVED;

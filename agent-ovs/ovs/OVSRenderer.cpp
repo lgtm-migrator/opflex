@@ -70,7 +70,7 @@ OVSRenderer::OVSRenderer(Agent& agent_)
       virtualDHCP(true), connTrack(true), ctZoneRangeStart(0),
       ctZoneRangeEnd(0), ovsdbUseLocalTcpPort(false), ifaceStatsEnabled(true), ifaceStatsInterval(0),
       contractStatsEnabled(true), contractStatsInterval(0),
-      serviceStatsFlowDisabled(false), serviceStatsEnabled(true), serviceStatsInterval(0),
+      serviceStatsFlowDisabled(true), serviceStatsEnabled(true), serviceStatsInterval(0),
       secGroupStatsEnabled(true), secGroupStatsInterval(0),
       tableDropStatsEnabled(true), tableDropStatsInterval(0),
       spanRenderer(agent_), netflowRenderer(agent_), qosRenderer(agent_), started(false),
@@ -481,7 +481,7 @@ void OVSRenderer::setProperties(const ptree& properties) {
 
     ifaceStatsEnabled = properties.get<bool>(STATS_INTERFACE_ENABLED, true);
     contractStatsEnabled = properties.get<bool>(STATS_CONTRACT_ENABLED, true);
-    serviceStatsFlowDisabled = properties.get<bool>(STATS_SERVICE_FLOWDISABLED, false);
+    serviceStatsFlowDisabled = properties.get<bool>(STATS_SERVICE_FLOWDISABLED, true);
     serviceStatsEnabled = properties.get<bool>(STATS_SERVICE_ENABLED, true);
     secGroupStatsEnabled = properties.get<bool>(STATS_SECGROUP_ENABLED, true);
     ifaceStatsInterval = properties.get<long>(STATS_INTERFACE_INTERVAL, 30000);

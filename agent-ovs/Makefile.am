@@ -372,6 +372,8 @@ opflex_agent_LDADD = \
 	$(PROMETHEUS_PULL_LIBS) \
 	libopflex_agent.la
 
+opflex_agent_LDADD += -lexecinfo
+
 gbp_inspect_CXXFLAGS = -DSYSCONFDIR='"$(sysconfdir)"'
 if ENABLE_TSAN
   gbp_inspect_CXXFLAGS += -fsanitize=thread

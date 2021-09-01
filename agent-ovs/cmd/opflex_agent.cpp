@@ -11,6 +11,9 @@
 #if HAVE_CONFIG_H
 #  include <config.h>
 #endif
+#include <unistd.h>
+#include <signal.h>
+#include <execinfo.h>
 #include <opflexagent/Agent.h>
 #include <opflexagent/cmd.h>
 
@@ -205,7 +208,31 @@ private:
     }
 };
 
+static void handle_fault(int signum, siginfo_t *siginfo, void *context) {
+    void *array[30];
+    size_t sz;
+    static int in_handle_fault = 0;
+    if (in_handle_fault)
+        exit(0);
+
+    std::cerr << "Got signal " << signum << " from process " << siginfo->si_pid
+              << " of user " << siginfo->si_uid << std::endl;
+    sz = backtrace(array, 30);
+    backtrace_symbols_fd(array, sz, STDERR_FILENO);
+    raise(SIGUSR1);
+    in_handle_fault = 1;
+}
+
 int main(int argc, char** argv) {
+    struct sigaction act;
+
+    memset(&act, '\0', sizeof(act));
+    act.sa_sigaction = &handle_fault;
+    act.sa_flags = SA_SIGINFO;
+    sigaction(SIGSEGV, &act, NULL);
+    sigaction(SIGTERM, &act, NULL);
+    sigaction(SIGINT, &act, NULL);
+
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
 
@@ -288,8 +315,7 @@ int main(int argc, char** argv) {
 
     sigset_t waitset;
     sigemptyset(&waitset);
-    sigaddset(&waitset, SIGINT);
-    sigaddset(&waitset, SIGTERM);
+    sigaddset(&waitset, SIGUSR1);
     sigprocmask(SIG_BLOCK, &waitset, nullptr);
     LogParams _logParams = std::make_tuple(level_str, logToSyslog, log_file);
     AgentLauncher launcher(watch, configFiles, _logParams);

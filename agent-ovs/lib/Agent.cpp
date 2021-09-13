@@ -72,7 +72,7 @@ Agent::Agent(OFFramework& framework_, const LogParams& _logParams)
       qosManager(*this,framework, agent_io),
       sysStatsEnabled(true),
       sysStatsInterval(10000),
-      prometheusEnabled(true),
+      prometheusEnabled(false),
       prometheusExposeLocalHostOnly(false),
       prometheusExposeEpSvcNan(false),
       behaviorL34FlowsWithoutSubnet(true),
@@ -258,8 +258,8 @@ void Agent::setProperties(const boost::property_tree::ptree& properties) {
     optional<bool> prometheusIsEnabled =
                 properties.get_optional<bool>(PROMETHEUS_ENABLED);
     if (prometheusIsEnabled) {
-        if (prometheusIsEnabled.get() == false)
-            prometheusEnabled = false;
+        if (prometheusIsEnabled.get() == true)
+            prometheusEnabled = true;
     }
 
     optional<bool> prometheusLocalHostOnly =

@@ -988,7 +988,8 @@ static void flowsIpm(IntFlowManager& flowMgr,
                          0, frdId)
                 .action()
                 .ethSrc(flowMgr.getRouterMacAddr()).ethDst(macAddr)
-                .ipDst(mappedIp).decTtl();
+		.ipDst(mappedIp)
+                //.ipDst(mappedIp).decTtl();
 
             actionRevNatDest(ipmRoute, epgVnid, bdId,
                              fgrpId, rdId, ofPort);
@@ -1028,7 +1029,7 @@ static void flowsIpm(IntFlowManager& flowMgr,
         if (!floatingIp.is_unspecified()) {
             ab.ipSrc(floatingIp);
         }
-        ab.decTtl();
+        //ab.decTtl();
 
         if (nextHopPort == OFPP_NONE) {
             ab.reg(MFF_REG0, fepgVnid)
@@ -1057,7 +1058,8 @@ static void flowsIpm(IntFlowManager& flowMgr,
                 .ethSrc(effNextHopMac).ipDst(floatingIp)
                 .action()
                 .ethSrc(flowMgr.getRouterMacAddr()).ethDst(macAddr)
-                .ipDst(mappedIp).decTtl();
+		.ipDst(mappedIp)
+                //.ipDst(mappedIp).decTtl();
 
             actionRevNatDest(ipmNextHopRev, epgVnid, bdId,
                              fgrpId, rdId, ofPort);
@@ -2082,7 +2084,7 @@ void IntFlowManager::handleEndpointUpdate(const string& uuid) {
             .action()
                 .ethSrc(getRouterMacAddr())
                 .ethDst(macAddr)
-                .decTtl()
+                //.decTtl()
                 .conntrack(ActionBuilder::CT_COMMIT,
                            static_cast<mf_field_id>(0),
                            zoneId, 0xff)
@@ -2179,7 +2181,7 @@ void IntFlowManager::handleEndpointUpdate(const string& uuid) {
                             .reg(MFF_REG7, ofPort)
                             .ethSrc(getRouterMacAddr())
                             .ethDst(macAddr)
-                            .decTtl()
+                            //.decTtl()
                             .metadata(flow::meta::ROUTED, flow::meta::ROUTED)
                             .go(POL_TABLE_ID)
                             .parent().build(elRouteDst);
@@ -2319,7 +2321,7 @@ void IntFlowManager::handleEndpointUpdate(const string& uuid) {
                             .ipDst(ipAddr)
                             .action()
                             .ethSrc(getRouterMacAddr()).ethDst(macAddr)
-                            .decTtl()
+                            //.decTtl()
                             .output(ofPort)
                             .parent().build(elServiceMap);
                     }
@@ -4199,7 +4201,8 @@ void IntFlowManager::updateServiceSnatDnatFlows(const string& uuid,
                         ipMap.priority(100)
                             .reg(7, link);
                     }
-                    ipMap.action().ipDst(nextHopAddr).decTtl();
+                    //ipMap.action().ipDst(nextHopAddr).decTtl();
+		    ipMap.action().ipDst(nextHopAddr);
                     // loopback has highest priority
                     if (loopback) {
                         if (!agent.getEndpointManager().getEpFromLocalMap(ipstr)) {
@@ -4320,7 +4323,7 @@ void IntFlowManager::updateServiceSnatDnatFlows(const string& uuid,
                             .action()
                             .ethSrc(macAddr)
                             .ipSrc(serviceAddr)
-                            .decTtl();
+                           // .decTtl();
                         // loopback has highest priority
                         if (loopback) {
                             ipRevMap.priority(102)
@@ -4513,7 +4516,8 @@ void IntFlowManager::handleServiceUpdate(const string& uuid) {
                 } else if (as.getServiceMode() == Service::LOCAL_ANYCAST &&
                            ofPort != OFPP_NONE) {
                     serviceDest.action()
-                        .ethDst(macAddr).decTtl()
+                        //.ethDst(macAddr).decTtl()
+			.ethDst(macAddr)
                         .output(ofPort);
                 }
 
@@ -4545,7 +4549,7 @@ void IntFlowManager::handleServiceUpdate(const string& uuid) {
                             svcIp.ipSrc(nextHopAddr)
                                 .action()
                                 .ipSrc(serviceAddr)
-                                .decTtl()
+                                //.decTtl()
                                 .metadata(flow::meta::ROUTED,
                                           flow::meta::ROUTED);
                         } else {

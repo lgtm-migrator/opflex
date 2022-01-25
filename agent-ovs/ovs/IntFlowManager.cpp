@@ -988,7 +988,7 @@ static void flowsIpm(IntFlowManager& flowMgr,
                          0, frdId)
                 .action()
                 .ethSrc(flowMgr.getRouterMacAddr()).ethDst(macAddr)
-		.ipDst(mappedIp)
+		.ipDst(mappedIp);
                 //.ipDst(mappedIp).decTtl();
 
             actionRevNatDest(ipmRoute, epgVnid, bdId,
@@ -1058,7 +1058,7 @@ static void flowsIpm(IntFlowManager& flowMgr,
                 .ethSrc(effNextHopMac).ipDst(floatingIp)
                 .action()
                 .ethSrc(flowMgr.getRouterMacAddr()).ethDst(macAddr)
-		.ipDst(mappedIp)
+		.ipDst(mappedIp);
                 //.ipDst(mappedIp).decTtl();
 
             actionRevNatDest(ipmNextHopRev, epgVnid, bdId,
@@ -4322,7 +4322,7 @@ void IntFlowManager::updateServiceSnatDnatFlows(const string& uuid,
                             .ipSrc(nextHopAddr)
                             .action()
                             .ethSrc(macAddr)
-                            .ipSrc(serviceAddr)
+                            .ipSrc(serviceAddr);
                            // .decTtl();
                         // loopback has highest priority
                         if (loopback) {
